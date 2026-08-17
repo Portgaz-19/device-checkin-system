@@ -1,5 +1,5 @@
 VerifyGate:
-An application that allows for secure check-in and out of campus buildings.
+An application that allows students to securely check-in and checkout of campus buildings with their smart devices.
 
 cd server && npm run dev - to run the backend
 cd client && npm run dev - to run the frontend
