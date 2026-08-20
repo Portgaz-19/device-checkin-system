@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./router/authRoutes.js";
+import User from './models/User.js';
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -26,6 +27,9 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.post('/api/test-user', async (req, res) => {
+
+});
 mongoose
   .connect(URI)
   .then(() => console.log("MongoDB connected"))
