@@ -1,15 +1,17 @@
-require("dotenv").config();
-const dns = require("dns");
+import dotenv from "dotenv";
+import dns from "dns";
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import authRoutes from "./router/authRoutes.js";
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const authRoutes = require("./router/authRoutes.js")
+dotenv.config();
+
+const PORT = process.env.PORT || 5000;
+
+const URI = process.env.MONGODB_URI;
 
 const app = express();
 
@@ -23,10 +25,6 @@ app.use('/api/auth', authRoutes);
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
-
-const PORT = process.env.PORT || 5000;
-
-const URI = process.env.MONGODB_URI;
 
 mongoose
   .connect(URI)
