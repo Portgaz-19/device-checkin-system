@@ -12,7 +12,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
-const URI = process.env.MONGODB_URI;
+const URI = process.env.MONGO_URI;
 
 const app = express();
 
