@@ -27,9 +27,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post('/api/test-user', async (req, res) => {
-
-});
 mongoose
   .connect(URI)
   .then(() => console.log("MongoDB connected"))
