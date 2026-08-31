@@ -8,6 +8,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { errorHandler } from "./middleware/errorHandler.js";
+import deviceRoutes from './router/deviceRoutes.js';
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -24,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("dev"));
-
+app.use('/api/devices', deviceRoutes);
 
 
 const authLimiter = rateLimit({
