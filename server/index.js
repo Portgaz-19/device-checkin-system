@@ -4,7 +4,6 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./router/authRoutes.js";
-import User from "./models/User.js";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
