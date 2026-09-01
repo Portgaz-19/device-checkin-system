@@ -8,7 +8,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { errorHandler } from "./middleware/errorHandler.js";
-import deviceRoutes from './router/deviceRoutes.js';
+import deviceRoutes from "./router/deviceRoutes.js";
+import qrRoutes from "./router/qrRoutes.js";
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -19,14 +20,11 @@ const URI = process.env.MONGO_URI;
 
 const app = express();
 
-
-
 app.use(cors());
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("dev"));
-app.use('/api/devices', deviceRoutes);
-
+app.use("/api/devices", deviceRoutes);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -36,9 +34,9 @@ const authLimiter = rateLimit({
   },
 });
 
-
-
 app.use("/api/auth", authLimiter, authRoutes);
+
+app.use("/api/qr", qrRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
@@ -50,8 +48,6 @@ mongoose
   .connect(URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
-
-
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
