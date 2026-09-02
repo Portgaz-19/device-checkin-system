@@ -4,6 +4,7 @@ import LoginPage from "./pages/Login.jsx";
 import RegisterDevice from "./pages/RegisterDevice.jsx";
 import MyDevices from "./pages/MyDevices.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ScannerPage from "./pages/ScannerPage.jsx";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/scan" element={<ScannerPage />} />
     </Routes>
   );
 }
