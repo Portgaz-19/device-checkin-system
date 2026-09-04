@@ -1,5 +1,6 @@
 import Device from '../models/Device.js';
-   import User from '../models/User.js';
+import ScanLog from '../models/ScanLog.js';
+import User from '../models/User.js';
 
    export async function registerDevice(req, res) {
      try {
@@ -44,6 +45,25 @@ import Device from '../models/Device.js';
      try {
        const devices = await Device.find().populate('owner', 'name email').populate('registeredBy', 'name email');
        res.json(devices);
+     } catch (err) {
+       res.status(500).json({ error: err.message });
+     }
+   }
+   export async function getAllScanLogs(req, res) {
+     try {
+       const logs = await ScanLog.find()
+         .populate({ path: 'device', populate: { path: 'owner', select: 'name email' } })
+         .sort({ createdAt: -1 });
+       res.json(logs);
+     } catch (err) {
+       res.status(500).json({ error: err.message });
+     }
+   }
+
+   export async function getDeviceScanHistory(req, res) {
+     try {
+       const logs = await ScanLog.find({ device: req.params.deviceId }).sort({ createdAt: -1 });
+       res.json(logs);
      } catch (err) {
        res.status(500).json({ error: err.message });
      }
