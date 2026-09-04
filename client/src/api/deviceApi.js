@@ -14,3 +14,7 @@ export async function getAllDevices() {
   const res = await api.get("/devices");
   return res.data;
 }
+   export async function getAllScanLogs() {
+     const res = await api.get('/devices/scanlogs');
+     return res.data;
+   }
