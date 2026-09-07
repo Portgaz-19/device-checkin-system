@@ -10,6 +10,7 @@ server/
 ├── controller/
 ├── router/
 ├── middleware/
+├── app.js
 ├── index.js
 └── ARCHITECTURE.md
 ```
@@ -89,19 +90,26 @@ middleware/
 
 ---
 
-## `server/index.js`
+## `server/app.js` and `server/index.js`
 
-`index.js` is responsible for application setup only.
+Application setup is split so the Express app can be imported without binding a port or
+connecting to a database (used by the test suite via Supertest).
 
-It should contain:
+`app.js` creates and configures the Express app:
 
 * Express application initialization.
-* Environment/configuration setup.
 * Global middleware registration.
 * Security and request-logging middleware.
 * Router mounting.
+
+`app.js` does **not** start a server or connect to the database, and exports the app as
+default.
+
+`index.js` is the runtime entry point (`node index.js`):
+
+* Environment/configuration setup (`dotenv`, DNS).
 * Database connection.
-* Server startup.
+* Server startup (`app.listen`).
 
 `index.js` should **not** contain:
 
@@ -156,7 +164,7 @@ New backend features should follow this general structure:
              ↓
 4. Add reusable middleware if the feature requires it.
              ↓
-5. Mount the router in index.js.
+5. Mount the router in app.js.
 ```
 
 For example, a new device feature could look like:
@@ -185,7 +193,7 @@ The backend uses the following core middleware:
 * `express-rate-limit` — limits requests to authentication routes to reduce brute-force attempts.
 * `errorHandler` — provides centralized handling for errors that reach the end of the middleware chain.
 
-These middleware components should be registered consistently in `server/index.js`.
+These middleware components should be registered consistently in `server/app.js`.
 
 ## General Rule
 

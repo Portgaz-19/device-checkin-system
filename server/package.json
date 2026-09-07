@@ -4,7 +4,7 @@
   "description": "VerifyGate:\r An application that allows students to securely check-in and checkout of campus buildings with their smart devices.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "nodemon index.js"
   },
   "repository": {
@@ -32,6 +32,8 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "vitest": "^5.0.0"
   }
 }
