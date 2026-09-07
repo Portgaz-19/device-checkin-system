@@ -1,0 +1,30 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  server-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run server test suite
+        working-directory: server
+        env:
+          TEST_MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npm test
