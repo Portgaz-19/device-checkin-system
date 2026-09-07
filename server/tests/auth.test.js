@@ -25,8 +25,11 @@ function assertSafeTestDatabase() {
   }
 }
 
+// Fail fast at import time, before any hooks run, so a missing TEST_MONGO_URI
+// produces one clear error instead of a misleading hook timeout.
+assertSafeTestDatabase();
+
 beforeAll(async () => {
-  assertSafeTestDatabase();
   process.env.JWT_SECRET = process.env.JWT_SECRET || "auth-test-secret";
   await mongoose.connect(TEST_MONGO_URI);
 });
@@ -36,8 +39,11 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await User.deleteMany({});
-  await mongoose.disconnect();
+  // Only touch the database if this suite actually connected to it.
+  if (mongoose.connection.readyState === 1) {
+    await User.deleteMany({});
+    await mongoose.disconnect();
+  }
 });
 
 describe("POST /api/auth/register", () => {
