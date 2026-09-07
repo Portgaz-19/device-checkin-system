@@ -31,8 +31,10 @@ assertSafeTestDatabase();
 
 beforeAll(async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET || "auth-test-secret";
-  await mongoose.connect(TEST_MONGO_URI);
-});
+  // Bound server selection so an unreachable TEST_MONGO_URI reports the real
+  // Mongo error instead of hitting Vitest's default 10s hook timeout.
+  await mongoose.connect(TEST_MONGO_URI, { serverSelectionTimeoutMS: 15000 });
+}, 30000);
 
 beforeEach(async () => {
   await User.deleteMany({});
