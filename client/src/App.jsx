@@ -5,10 +5,12 @@ import RegisterDevice from "./pages/RegisterDevice.jsx";
 import MyDevices from "./pages/MyDevices.jsx";
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import ScannerPage from "./pages/ScannerPage.jsx";
+import { lazy, Suspense } from 'react';
+const ScannerPage = lazy(() => import('./pages/ScannerPage.jsx'));
 
 function App() {
   return (
+    
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -30,6 +32,11 @@ function App() {
         }
       />
       <Route path="/scan" element={<ScannerPage />} />
+      <Route path="/scan" element={
+     <Suspense fallback={<p className="p-8">Loading scanner...</p>}>
+       <ScannerPage />
+     </Suspense>
+   } />
     </Routes>
   );
 }
