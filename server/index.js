@@ -1,19 +1,18 @@
 import dotenv from "dotenv";
 import dns from "dns";
-import express from "express";
-import cors from "cors";
 import mongoose from "mongoose";
-import authRoutes from "./router/authRoutes.js";
-import helmet from "helmet";
-import morgan from "morgan";
-import rateLimit from "express-rate-limit";
-import { errorHandler } from "./middleware/errorHandler.js";
-import deviceRoutes from "./router/deviceRoutes.js";
-import qrRoutes from "./router/qrRoutes.js";
+import app from "./app.js";
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 dotenv.config();
+
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
+const missing = requiredEnvVars.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 5000;
 const URI = process.env.MONGO_URI;
