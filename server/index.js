@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 import dns from "dns";
 import mongoose from "mongoose";
 import app from "./app.js";
@@ -16,6 +16,7 @@ if (missing.length > 0) {
 
 const PORT = process.env.PORT || 5000;
 const URI = process.env.MONGO_URI;
+
 
 mongoose
   .connect(URI)
