@@ -12,7 +12,6 @@ server/
 ├── middleware/
 ├── app.js
 ├── index.js
-└── ARCHITECTURE.md
 ```
 
 ## `server/models/`
@@ -127,13 +126,13 @@ app.use(errorHandler);
 
 ## Naming Convention
 
-The project intentionally uses singular folder names:
+The project uses established folder names:
 
 ```text
+models/
 controller/
 router/
 middleware/
-model/
 ```
 
 Do not rename these folders to:
@@ -142,7 +141,6 @@ Do not rename these folders to:
 controllers/
 routers/
 middlewares/
-models/
 ```
 
 unless the team explicitly agrees to change the project-wide convention.
@@ -204,7 +202,8 @@ Model       → Database structure
 Controller  → Business logic
 Router      → HTTP route wiring
 Middleware  → Reusable request/response processing
-index.js    → Application setup
+app.js      → Express application setup
+index.js    → Runtime startup (environment, database, listener)
 ```
 
 When adding a new backend feature, follow this structure even for small features so that the codebase remains predictable and maintainable.

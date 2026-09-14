@@ -35,6 +35,9 @@ Auth route tests (`server/tests/auth.test.js`):
 - login: correct credentials return a JWT and role (200), invalid password rejected (401),
   unknown email rejected (401)
 - `/api/auth/me`: valid token returns the current user, missing token rejected (401)
+- password reset: token hashes are stored instead of raw tokens; account lookup
+  is normalized; valid tokens reset the password; expired, invalid, and reused
+  tokens are rejected; reset-token fields are cleared after use
 
 ### What is NOT covered yet
 
@@ -42,6 +45,10 @@ Auth route tests (`server/tests/auth.test.js`):
 - QR generation / scan-resolution tests — not implemented
 - Frontend tests — none exist; the client has no test framework set up. Manual UI testing
   only, as before.
+
+Password-reset tests do not currently cover the required minimum password
+length or concurrent reset submissions. Those are release blockers recorded in
+the password-reset review.
 
 ## Future priorities
 

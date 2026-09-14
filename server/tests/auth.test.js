@@ -265,6 +265,35 @@ describe("POST /api/auth/forgot-password", () => {
     expect(res.body).toEqual({ message: genericMessage });
   });
 
+  it("does not return the dev-only reset link when NODE_ENV is production or staging", async () => {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const originalNodeEnv = process.env.NODE_ENV;
+    try {
+      for (const env of ["production", "staging"]) {
+        process.env.NODE_ENV = env;
+        const res = await request(app)
+          .post("/api/auth/forgot-password")
+          .send({ email: validUser.email })
+          .expect(200);
+
+        expect(res.body).toEqual({ message: genericMessage });
+        expect(res.body.devOnlyResetLink).toBeUndefined();
+      }
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
+  it("rejects a non-string email with 400 instead of a 500", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: { nested: true } })
+      .expect(400);
+
+    expect(res.body.error).toBe("email must be a string");
+  });
+
   it("stores only a hash of the reset token, never the raw token", async () => {
     await request(app).post("/api/auth/register").send(validUser).expect(201);
 
@@ -407,5 +436,73 @@ describe("POST /api/auth/reset-password", () => {
       .expect(400);
 
     expect(res.body.error).toBe("Missing token or new password");
+  });
+
+  it("rejects a non-string token with 400 instead of 500", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token: { nested: true }, newPassword: "brand-new-password" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Missing token or new password");
+  });
+
+  it("rejects a non-string newPassword with 400 instead of 500", async () => {
+    const token = await registerAndRequestReset();
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: { nested: true } })
+      .expect(400);
+
+    expect(res.body.error).toBe("Missing token or new password");
+  });
+
+  it("rejects a new password shorter than six characters", async () => {
+    const token = await registerAndRequestReset();
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "short" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Password must be at least 6 characters");
+
+    const saved = await User.findOne({ email: validUser.email });
+    expect(await bcrypt.compare(validUser.password, saved.passwordHash)).toBe(true);
+  });
+
+  it("accepts a new password of exactly six characters", async () => {
+    const token = await registerAndRequestReset();
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "abc123" })
+      .expect(200);
+
+    expect(res.body.message).toBe("Password reset successfully. You can now log in.");
+  });
+
+  it("consumes the token atomically so concurrent resets cannot both succeed", async () => {
+    const token = await registerAndRequestReset();
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post("/api/auth/reset-password")
+        .send({ token, newPassword: "concurrent-pass-1" }),
+      request(app)
+        .post("/api/auth/reset-password")
+        .send({ token, newPassword: "concurrent-pass-2" }),
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([200, 400]);
+
+    const winner = first.status === 200 ? first : second;
+    expect(winner.body.message).toBe("Password reset successfully. You can now log in.");
+
+    const saved = await User.findOne({ email: validUser.email });
+    expect(saved.resetPasswordTokenHash).toBeFalsy();
+    expect(saved.resetPasswordExpires).toBeFalsy();
   });
 });
