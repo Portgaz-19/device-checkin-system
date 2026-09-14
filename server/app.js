@@ -11,8 +11,8 @@ import { errorHandler } from "./middleware/errorHandler.js";
 const app = express();
 
 const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, "http://localhost:5173/"]
-  : ["http://localhost:5173/"];
+  ? [process.env.FRONTEND_URL, "http://localhost:5173"]
+  : ["http://localhost:5173"];
 
 app.use(
   cors({
