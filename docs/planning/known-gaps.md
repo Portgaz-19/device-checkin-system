@@ -75,5 +75,5 @@ snapshots are kept under `docs/archive/` instead.
 ## Where this list comes from
 
 Cross-referenced against the [project overview](../architecture/overview.md)
-(architecture trace) and [project context](project-context.md) (task tracker). Update
+(architecture trace) and [agent context](../agent-context.md) (task tracker). Update
 both if a gap here gets closed.
