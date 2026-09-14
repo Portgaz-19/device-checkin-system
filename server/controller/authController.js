@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
@@ -37,6 +38,68 @@ export const login = async (req, res) => {
          { expiresIn: '2h' }
        );
        res.json({ token, role: user.role });
+     } catch (err) {
+       res.status(500).json({ error: err.message });
+     }
+}
+
+export const forgotPassword = async (req, res) => {
+    try {
+       const { email } = req.body;
+       const genericResponse = {
+         message: 'If an account exists for this email, a reset link has been generated.',
+       };
+
+       if (!email) {
+         return res.json(genericResponse);
+       }
+
+       const user = await User.findOne({ email: email.trim().toLowerCase() });
+       if (!user) {
+         return res.json(genericResponse);
+       }
+
+       const rawToken = crypto.randomBytes(32).toString('hex');
+       const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+       user.resetPasswordTokenHash = tokenHash;
+       user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+       await user.save();
+
+       // TEMPORARY dev-only exposure: no email service is wired up yet, so the
+       // reset link is returned in the response instead of emailed. Replace with
+       // a real email send when the team picks a provider.
+       const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+
+       res.json({ ...genericResponse, devOnlyResetLink: resetLink });
+     } catch (err) {
+       res.status(500).json({ error: err.message });
+     }
+}
+
+export const resetPassword = async (req, res) => {
+    try {
+       const { token, newPassword } = req.body;
+       if (!token || !newPassword) {
+         return res.status(400).json({ error: 'Missing token or new password' });
+       }
+
+       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+       const user = await User.findOne({
+         resetPasswordTokenHash: tokenHash,
+         resetPasswordExpires: { $gt: Date.now() },
+       });
+
+       if (!user) {
+         return res.status(400).json({ error: 'Reset link is invalid or has expired' });
+       }
+
+       user.passwordHash = await bcrypt.hash(newPassword, 10);
+       user.resetPasswordTokenHash = undefined;
+       user.resetPasswordExpires = undefined;
+       await user.save();
+
+       res.json({ message: 'Password reset successfully. You can now log in.' });
      } catch (err) {
        res.status(500).json({ error: err.message });
      }

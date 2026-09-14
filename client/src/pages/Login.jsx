@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { loginUser } from "../api/authApi";
 
 function Login() {
@@ -41,6 +42,11 @@ function Login() {
         Login
       </button>
       <p className="mt-2 text-sm">{message}</p>
+      <p className="mt-2 text-sm">
+        <Link to="/forgot-password" className="underline">
+          Forgot password?
+        </Link>
+      </p>
     </div>
   );
 }

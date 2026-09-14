@@ -1,3 +1,5 @@
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -206,5 +208,204 @@ describe("GET /api/auth/me", () => {
     const res = await request(app).get("/api/auth/me").expect(401);
 
     expect(res.body.error).toBe("No token provided");
+  });
+});
+
+describe("POST /api/auth/forgot-password", () => {
+  const validUser = {
+    name: "Ada Student",
+    email: "ada@test.example",
+    password: "hunter2-secret",
+    role: "student",
+  };
+
+  const genericMessage =
+    "If an account exists for this email, a reset link has been generated.";
+
+  it("returns the generic message and a dev-only reset link for an existing account", async () => {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: validUser.email })
+      .expect(200);
+
+    expect(res.body.message).toBe(genericMessage);
+    expect(res.body.devOnlyResetLink).toMatch(/\/reset-password\?token=/);
+  });
+
+  it("normalizes the email before looking up the account", async () => {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "ADA@TEST.EXAMPLE" })
+      .expect(200);
+
+    expect(res.body.devOnlyResetLink).toBeTruthy();
+  });
+
+  it("returns the same generic message, with no link, for an unknown email", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "nobody@test.example" })
+      .expect(200);
+
+    expect(res.body).toEqual({ message: genericMessage });
+  });
+
+  it("returns the generic message when no email is provided", async () => {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({})
+      .expect(200);
+
+    expect(res.body).toEqual({ message: genericMessage });
+  });
+
+  it("stores only a hash of the reset token, never the raw token", async () => {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: validUser.email })
+      .expect(200);
+
+    const rawToken = new URL(res.body.devOnlyResetLink).searchParams.get("token");
+    const saved = await User.findOne({ email: validUser.email });
+
+    expect(rawToken).toBeTruthy();
+    expect(saved.resetPasswordTokenHash).toBeTruthy();
+    expect(saved.resetPasswordTokenHash).not.toBe(rawToken);
+    expect(saved.resetPasswordTokenHash).toBe(
+      crypto.createHash("sha256").update(rawToken).digest("hex"),
+    );
+    expect(saved.resetPasswordExpires).toBeInstanceOf(Date);
+  });
+});
+
+describe("POST /api/auth/reset-password", () => {
+  const validUser = {
+    name: "Ada Student",
+    email: "ada@test.example",
+    password: "hunter2-secret",
+    role: "student",
+  };
+
+  async function registerAndRequestReset() {
+    await request(app).post("/api/auth/register").send(validUser).expect(201);
+
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: validUser.email })
+      .expect(200);
+
+    return new URL(res.body.devOnlyResetLink).searchParams.get("token");
+  }
+
+  it("resets the password with a valid token and clears the token fields", async () => {
+    const token = await registerAndRequestReset();
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "brand-new-password" })
+      .expect(200);
+
+    expect(res.body.message).toBe(
+      "Password reset successfully. You can now log in.",
+    );
+
+    const saved = await User.findOne({ email: validUser.email });
+    expect(saved.passwordHash).toBeTruthy();
+    expect(saved.resetPasswordTokenHash).toBeFalsy();
+    expect(saved.resetPasswordExpires).toBeFalsy();
+  });
+
+  it("allows login with the new password and rejects the old one", async () => {
+    const token = await registerAndRequestReset();
+
+    await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "brand-new-password" })
+      .expect(200);
+
+    await request(app)
+      .post("/api/auth/login")
+      .send({ email: validUser.email, password: "brand-new-password" })
+      .expect(200);
+
+    await request(app)
+      .post("/api/auth/login")
+      .send({ email: validUser.email, password: validUser.password })
+      .expect(401);
+  });
+
+  it("rejects a reused token after a successful reset", async () => {
+    const token = await registerAndRequestReset();
+
+    await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "brand-new-password" })
+      .expect(200);
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "another-new-password" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Reset link is invalid or has expired");
+  });
+
+  it("rejects an expired token and leaves the password unchanged", async () => {
+    const token = await registerAndRequestReset();
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await User.updateOne(
+      { email: validUser.email },
+      { $set: { resetPasswordTokenHash: tokenHash, resetPasswordExpires: Date.now() - 1000 } },
+    );
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, newPassword: "brand-new-password" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Reset link is invalid or has expired");
+
+    const saved = await User.findOne({ email: validUser.email });
+    expect(await bcrypt.compare(validUser.password, saved.passwordHash)).toBe(
+      true,
+    );
+  });
+
+  it("rejects an invalid token", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token: "not-a-real-token", newPassword: "brand-new-password" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Reset link is invalid or has expired");
+  });
+
+  it("rejects a missing token with 400", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ newPassword: "brand-new-password" })
+      .expect(400);
+
+    expect(res.body.error).toBe("Missing token or new password");
+  });
+
+  it("rejects a missing new password with 400", async () => {
+    const token = await registerAndRequestReset();
+
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token })
+      .expect(400);
+
+    expect(res.body.error).toBe("Missing token or new password");
   });
 });
