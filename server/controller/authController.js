@@ -53,6 +53,9 @@ export const forgotPassword = async (req, res) => {
        if (!email) {
          return res.json(genericResponse);
        }
+       if (typeof email !== 'string') {
+         return res.status(400).json({ error: 'email must be a string' });
+       }
 
        const user = await User.findOne({ email: email.trim().toLowerCase() });
        if (!user) {
@@ -66,12 +69,19 @@ export const forgotPassword = async (req, res) => {
        user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
        await user.save();
 
-       // TEMPORARY dev-only exposure: no email service is wired up yet, so the
-       // reset link is returned in the response instead of emailed. Replace with
-       // a real email send when the team picks a provider.
-       const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+        // TEMPORARY dev-only exposure: no email service is wired up yet, so the
+        // reset link is returned in the response instead of emailed. Exposed
+        // only when NODE_ENV is explicitly 'development' or 'test' — production,
+        // staging, and any other environment get the generic response without the
+        // link to prevent callers from confirming registered email addresses.
+        // Replace with a real email send when the team picks a provider.
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+        const isLocalDevEnv = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+        const body = isLocalDevEnv
+          ? { ...genericResponse, devOnlyResetLink: resetLink }
+          : genericResponse;
 
-       res.json({ ...genericResponse, devOnlyResetLink: resetLink });
+       res.json(body);
      } catch (err) {
        res.status(500).json({ error: err.message });
      }
@@ -80,24 +90,33 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
     try {
        const { token, newPassword } = req.body;
-       if (!token || !newPassword) {
+       if (typeof token !== 'string' || typeof newPassword !== 'string' || !token || !newPassword) {
          return res.status(400).json({ error: 'Missing token or new password' });
+       }
+       if (newPassword.length < 6) {
+         return res.status(400).json({ error: 'Password must be at least 6 characters' });
        }
 
        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-       const user = await User.findOne({
-         resetPasswordTokenHash: tokenHash,
-         resetPasswordExpires: { $gt: Date.now() },
-       });
+       const passwordHash = await bcrypt.hash(newPassword, 10);
+
+       // Atomic single-use consumption: the token hash and expiry are part of the
+       // update filter, so a concurrent reset racing on the same token cannot both
+       // match — only the first findOneAndUpdate can consume it.
+       const user = await User.findOneAndUpdate(
+         {
+           resetPasswordTokenHash: tokenHash,
+           resetPasswordExpires: { $gt: Date.now() },
+         },
+         {
+           $set: { passwordHash },
+           $unset: { resetPasswordTokenHash: '', resetPasswordExpires: '' },
+         },
+       );
 
        if (!user) {
          return res.status(400).json({ error: 'Reset link is invalid or has expired' });
        }
-
-       user.passwordHash = await bcrypt.hash(newPassword, 10);
-       user.resetPasswordTokenHash = undefined;
-       user.resetPasswordExpires = undefined;
-       await user.save();
 
        res.json({ message: 'Password reset successfully. You can now log in.' });
      } catch (err) {
