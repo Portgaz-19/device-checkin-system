@@ -4,6 +4,7 @@ import { loginUser } from "../api/authApi";
 
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
@@ -11,13 +12,18 @@ function Login() {
   };
 
   const handleSubmit = async () => {
-    setMessage("Logging in...");
+    setIsSubmitting(true);
     try {
-      const data = await loginUser(form);
-      localStorage.setItem("token", data.token);
-      setMessage("Login successful!");
-    } catch (err) {
-      setMessage(err.response?.data?.message || err.message);
+      setMessage("Logging in...");
+      try {
+        const data = await loginUser(form);
+        localStorage.setItem("token", data.token);
+        setMessage("Login successful!");
+      } catch (err) {
+        setMessage(err.response?.data?.message || err.message);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -38,8 +44,12 @@ function Login() {
         onChange={handleChange}
       />
 
-      <button className="bg-black text-white p-2 w-full" onClick={handleSubmit}>
-        Login
+      <button
+        className="bg-black text-white p-2 w-full disabled:opacity-50"
+        disabled={isSubmitting}
+        onClick={handleSubmit}
+      >
+        {isSubmitting ? "Logging in..." : "Login"}
       </button>
       <p className="mt-2 text-sm">{message}</p>
       <p className="mt-2 text-sm">

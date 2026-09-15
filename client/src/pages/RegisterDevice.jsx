@@ -7,19 +7,25 @@ function RegisterDevice() {
     serialNumber: "",
     studentEmail: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
-    setMessage("Submitting...");
+    setIsSubmitting(true);
     try {
-      await registerDevice(form);
-      setMessage("Device registered successfully.");
-      setForm({ deviceName: "", serialNumber: "", studentEmail: "" });
-    } catch (err) {
-      setMessage(err.response?.data?.error || "Registration failed");
+      setMessage("Submitting...");
+      try {
+        await registerDevice(form);
+        setMessage("Device registered successfully.");
+        setForm({ deviceName: "", serialNumber: "", studentEmail: "" });
+      } catch (err) {
+        setMessage(err.response?.data?.error || "Registration failed");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -47,8 +53,8 @@ function RegisterDevice() {
         value={form.studentEmail}
         onChange={handleChange}
       />
-      <button className="bg-black text-white p-2 w-full" onClick={handleSubmit}>
-        Register Device
+      <button className="bg-black text-white p-2 w-full disabled:opacity-50" disabled={isSubmitting} onClick={handleSubmit}>
+        {isSubmitting ? "Submitting..." : "Register Device"}
       </button>
       <p className="mt-2 text-sm">{message}</p>
     </div>
