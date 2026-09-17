@@ -44,7 +44,12 @@ frontend (`client/`). ES modules throughout both.
 - Module system: ESM (`"type": "module"`).
 - Route organization: routers mounted at `/api/auth`, `/api/devices`, `/api/qr`; controller functions are plain exported async handlers using `try/catch` returning `{ error }` or success JSON.
 - Rate limiting: `authLimiter` (15-min window, max 20, `{ error: "Too many attempts..." }`) mounted at `/api/auth` level — **covers login, register, forgot-password, reset-password**. Deliberately skipped when `NODE_ENV=test` so the suite doesn't trip it.
-- Error handling: `errorHandler` middleware logs stack, returns `{ error: err.message }` with `err.status || 500`.
+- Error handling: `errorHandler` middleware logs the full stack server-side, returns
+  `{ error: err.message }` only when `err.status` is below 500 (deliberate client-facing
+  errors); unexpected 500s get a generic `"Internal server error"`. Controller `catch`
+  blocks log via `console.error(err)` and return
+  `{ error: "Something went wrong. Please try again." }` on 500 — raw internal messages
+  are never sent to the client.
 
 ## Authentication
 
@@ -102,7 +107,9 @@ Names only:
 - `TEST_MONGO_URI` (test-only, required for `npm test`; must be an isolated DB)
 - `NODE_ENV` — `test` disables morgan + auth limiter; **`development` or `test` is required for `forgotPassword` to return the dev-only reset link** (any other value — production, staging, unset — suppresses the link)
 
-Secrets live only in `server/.env` (git-ignored) and GitHub CI secrets.
+Secrets live only in `server/.env` (git-ignored) and GitHub CI secrets. Copy-pasteable
+templates exist at `server/.env.example` and `client/.env.example` (git-tracked via the
+`!.env.example` gitignore negation) — the starting point for local setup, referenced from `README.md`.
 
 ## Testing
 
@@ -132,7 +139,9 @@ Secrets live only in `server/.env` (git-ignored) and GitHub CI secrets.
 - No minimum password strength at register (presence-only; reset-password has a 6-char floor).
 - Raw JWT session can't be revoked server-side (no denylist). 2h expiry bounds the risk.
 - `login` fails for mixed-case email input (only affects login, not register/reset).
-- Root repo has untracked `.claude/` and `package-lock.json`; `.gitignore` ignores `docs/` and all `.env*`.
+- Root repo has untracked `.claude/` and `package-lock.json`. `.gitignore` ignores all
+  `.env*` except `.env.example` (negated so the template files stay trackable). `docs/` is
+  NOT ignored (tracked task files) — the older note claiming it was ignored was stale.
 
 ## Completed task index
 
@@ -144,8 +153,9 @@ Secrets live only in `server/.env` (git-ignored) and GitHub CI secrets.
 | 30 | Navbar, logout, error boundary, code-splitting | Complete (merged) | — |
 | 31 | CORS hardening, scan rate limiting, cleanup, deploy config | Complete (merged) | — |
 | 36 | Password reset (dev-only link, email pending) | Complete | `docs/agent-task-history/36-password-reset.md` |
+| 41 | Error hygiene, `.env.example`, repo cleanup | Complete | `docs/agent-task-history/41-error-hygiene-env-cleanup.md` |
 
 ## Context maintenance notes
 
-- Last meaningful update: initial creation by the Task 36 agent (based on branch `feature/password-reset`, off `origin/main` at `6e7107e`).
+- Last meaningful update: Task 41 agent (branch `chore/error-hygiene-env-example`, off a fresh `origin/main`).
 - Future tasks: always branch from `origin/main` (local `main` ref is stale), check `server/app.js` for the mounted route/limiter layout, and remember tests need `TEST_MONGO_URI` pointing at the local running MongoDB service DB (`device_checkin_test`).
