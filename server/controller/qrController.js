@@ -15,7 +15,8 @@ export async function generateQr(req, res) {
 
     res.json({ qrImage, expiresIn: 300 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -61,6 +62,7 @@ export async function resolveScan(req, res) {
 
     res.json({ devices: updated });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }

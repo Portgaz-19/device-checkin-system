@@ -33,7 +33,8 @@ export async function registerDevice(req, res) {
 
     res.status(201).json(device);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -42,7 +43,8 @@ export async function getMyDevices(req, res) {
     const devices = await Device.find({ owner: req.user.id });
     res.json(devices);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -62,7 +64,8 @@ export async function getAllDevices(req, res) {
     ]);
     res.json({ devices, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -85,7 +88,8 @@ export async function getAllScanLogs(req, res) {
     ]);
     res.json({ logs, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -96,7 +100,8 @@ export async function getDeviceScanHistory(req, res) {
     });
     res.json(logs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -121,7 +126,8 @@ export async function updateDevice(req, res) {
     await device.save();
     res.json(device);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }
 
@@ -134,6 +140,7 @@ export async function deleteDevice(req, res) {
 
     res.json({ message: "Device deleted" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 }

@@ -16,9 +16,10 @@ export const register = async (req, res) => {
        const passwordHash = await bcrypt.hash(password, 10);
        const user = await User.create({ name, email, passwordHash, role, studentId });
        res.status(201).json({ id: user._id, email: user.email, role: user.role });
-     } catch (err) {
-       res.status(500).json({ error: err.message });
-     }
+} catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Something went wrong. Please try again." });
+      }
 }
 
 export const login = async (req, res) => {
@@ -38,9 +39,10 @@ export const login = async (req, res) => {
          { expiresIn: '2h' }
        );
        res.json({ token, role: user.role });
-     } catch (err) {
-       res.status(500).json({ error: err.message });
-     }
+} catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Something went wrong. Please try again." });
+      }
 }
 
 export const forgotPassword = async (req, res) => {
@@ -82,9 +84,10 @@ export const forgotPassword = async (req, res) => {
           : genericResponse;
 
        res.json(body);
-     } catch (err) {
-       res.status(500).json({ error: err.message });
-     }
+} catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Something went wrong. Please try again." });
+      }
 }
 
 export const resetPassword = async (req, res) => {
@@ -119,8 +122,9 @@ export const resetPassword = async (req, res) => {
        }
 
        res.json({ message: 'Password reset successfully. You can now log in.' });
-     } catch (err) {
-       res.status(500).json({ error: err.message });
-     }
+} catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Something went wrong. Please try again." });
+      }
 }
 
