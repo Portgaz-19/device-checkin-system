@@ -38,3 +38,10 @@ discrepancy in the task history.
    from the specification.
 4. Report only actions actually completed; clearly identify external or manual
    work still required.
+
+Use targeted verification rather than rescanning the repository.
+When finished, update both:
+- `docs/agent-context.md`
+- `docs/agent-task-history/37-whatever.md`
+
+Execute, test, validate, and document the task completely.
