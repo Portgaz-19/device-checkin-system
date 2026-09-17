@@ -21,6 +21,7 @@ function Navbar() {
         </>
       )}
       {user?.role === 'student' && <Link to="/devices/mine">My Devices</Link>}
+      {user?.role === 'student' && <Link to="/devices/qr">My QR Code</Link>}
       {(user?.role === 'hostelSupervisor' || user?.role === 'admin') && (
         <Link to="/devices/register">Register Device</Link>
       )}
