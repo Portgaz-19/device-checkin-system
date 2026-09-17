@@ -8,5 +8,3 @@ dist/
 *.png
 
 !client/src/assets/*.png
-
-!client/src/assets/*.png

@@ -6,6 +6,8 @@ cd client && npm run dev - to run the frontend
 
 NOTE:
 DO NOT EVER COMMIT .ENV!!!
+Start local setup from `server/.env.example` (copy to `server/.env`) and
+`client/.env.example` (copy to `client/.env`), then fill in real values.
 
 ## Documentation
 
