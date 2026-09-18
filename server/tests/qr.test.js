@@ -20,11 +20,15 @@ import dotenv from "dotenv";
    }
    assertSafeTestDatabase();
 
+   const url = new URL(TEST_MONGO_URI);
+   url.pathname += "_qr";
+   const QR_TEST_MONGO_URI = url.toString();
+
    let studentToken, studentId, supervisorToken;
 
    beforeAll(async () => {
      process.env.JWT_SECRET = process.env.JWT_SECRET || "auth-test-secret";
-     await mongoose.connect(TEST_MONGO_URI, { serverSelectionTimeoutMS: 15000 });
+     await mongoose.connect(QR_TEST_MONGO_URI, { serverSelectionTimeoutMS: 15000 });
 
      const student = await request(app).post("/api/auth/register").send({
        name: "QR Test Student",
