@@ -505,4 +505,29 @@ describe("POST /api/auth/reset-password", () => {
     expect(saved.resetPasswordTokenHash).toBeFalsy();
     expect(saved.resetPasswordExpires).toBeFalsy();
   });
+  async function registerAndRequestReset() {
+  console.log("1. Starting register");
+
+  const registerRes = await request(app)
+    .post("/api/auth/register")
+    .send(validUser);
+
+  console.log("2. Register finished:", registerRes.status);
+
+  const res = await request(app)
+    .post("/api/auth/forgot-password")
+    .send({ email: validUser.email });
+
+  console.log("3. Forgot-password finished:", res.status);
+
+  console.log("4. Response body:", res.body);
+
+  const token = new URL(res.body.devOnlyResetLink)
+    .searchParams
+    .get("token");
+
+  console.log("5. Token extracted:", !!token);
+
+  return token;
+}
 });
