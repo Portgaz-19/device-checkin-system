@@ -22,12 +22,18 @@ export async function generateQr(req, res) {
 
 export async function resolveScan(req, res) {
   try {
-    const { token, location } = req.body;
+    const { token, location, serialNumbers } = req.body;
+
     if (!token || !location) {
       return res.status(400).json({ error: "Missing token or location" });
     }
 
+    if (serialNumbers !== undefined && !Array.isArray(serialNumbers)) {
+      return res.status(400).json({ error: "serialNumbers must be an array" });
+    }
+
     let decoded;
+
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
@@ -36,27 +42,40 @@ export async function resolveScan(req, res) {
         .json({ error: "QR code is invalid or has expired" });
     }
 
-    const devices = await Device.find({ owner: decoded.studentId });
+    const deviceQuery = {
+      owner: decoded.studentId,
+    };
+
+    if (serialNumbers && serialNumbers.length > 0) {
+      deviceQuery.serialNumber = { $in: serialNumbers };
+    }
+
+    const devices = await Device.find(deviceQuery);
+
     if (devices.length === 0) {
       return res
         .status(404)
         .json({ error: "No devices found for this student" });
     }
 
-    // Flip each device's status and log the scan — this is deliberately simple: every
-    // device tied to the student flips together on one scan, matching the original
-    // design (one QR shows the whole list, security checks the physical devices
-    // against it). If the team later wants per-device scanning instead of all-at-once,
-    // this loop is the place to change.
+    // Flip each selected device's status and log the scan.
     const updated = [];
+
     for (const device of devices) {
       const newStatus =
         device.status === "checked-in" ? "checked-out" : "checked-in";
+
       device.status = newStatus;
       device.lastLocation = location;
+
       await device.save();
 
-      await ScanLog.create({ device: device._id, location, action: newStatus });
+      await ScanLog.create({
+        device: device._id,
+        location,
+        action: newStatus,
+      });
+
       updated.push(device);
     }
 
