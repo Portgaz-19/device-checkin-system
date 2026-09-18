@@ -39,11 +39,16 @@ file's still-running `beforeAll` logins depended on.
 - Per-file DB suffix uses the same URL-rewrite trick (`new URL()` +
   `pathname += "_suffix"`) in both files rather than a shared helper — each
   Vitest worker is an isolated process, so a shared helper buys nothing.
-- Left the debug `console.log`s inside a duplicated
+- ~~Left the debug `console.log`s inside a duplicated
   `registerAndRequestReset()` in `server/tests/auth.test.js` (lines ~508-532,
-  added by this branch) alone: not in scope and functionally harmless, but
-  they are noise and a second copy of the function shadows the first in the
-  reset-password describe block. Worth cleaning in a later task.
+  added by this branch) alone~~ — **resolved in follow-up commit `4f0f319`**:
+  the second, buggy duplicate (no `.expect` guards, five debug `console.log`s)
+  was deleted in full. It won the function-declaration hoisting in the
+  reset-password describe block, so every call site used the unguarded copy,
+  which silently proceeded with possibly-undefined data when register /
+  forgot-password misbehaved (`TypeError: Invalid URL`, 409/500 noise). The
+  original guarded declaration is untouched. `auth.test.js` now ends cleanly
+  at the describe-block close.
 
 ## Follow-up work
 
