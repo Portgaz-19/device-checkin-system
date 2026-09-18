@@ -85,7 +85,7 @@ frontend (`client/`). ES modules throughout both.
 
 - MongoDB Atlas (dev), connection in `server/index.js` via `MONGO_URI`.
 - Models: `User` (name, email unique lowercased, passwordHash, role enum, studentId, + `resetPasswordTokenHash`, `resetPasswordExpires`), `Device`, `ScanLog`.
-- Test database: isolated mechanism via `TEST_MONGO_URI`. Suites **refuse to run** unless `TEST_MONGO_URI` is set and differs from `MONGO_URI`. Because Vitest runs files in parallel workers, each suite uses its own physical database: `auth.test.js` uses the bare `TEST_MONGO_URI` (only `deleteMany`s `User` docs), while `device.test.js`/`qr.test.js` derive per-file DBs by appending `_device`/`_qr` to the DB name and each `dropDatabase()` in `afterAll` — never point it at real data.
+- Test database: isolated mechanism via `TEST_MONGO_URI`. Suites **refuse to run** unless `TEST_MONGO_URI` is set and differs from `MONGO_URI`. `server/vitest.config.js` sets `test.fileParallelism: false`, so Vitest runs the test files sequentially instead of in parallel workers — CI intermittently leaked state across files under parallel execution. Each suite still keeps its own physical database: `auth.test.js` uses the bare `TEST_MONGO_URI` (only `deleteMany`s `User` docs), while `device.test.js`/`qr.test.js` derive per-file DBs by appending `_device`/`_qr` to the DB name and each `dropDatabase()` in `afterAll` — never point it at real data.
 - Local test run on this machine: a MongoDB 8.3 **Windows service is installed and running** at `127.0.0.1:27017`; tests run fine against `mongodb://127.0.0.1:27017/device_checkin_test`. No local `mongod` binary needed in PATH (service). `mongosh` at `C:\Users\SODIQ\AppData\Local\Programs\mongosh\mongosh.exe`.
 
 ## Frontend architecture
@@ -113,10 +113,10 @@ templates exist at `server/.env.example` and `client/.env.example` (git-tracked 
 
 ## Testing
 
-- Framework: Vitest 5 + Supertest, in `server/tests/auth.test.js`. Command: `cd server && $env:TEST_MONGO_URI="mongodb://127.0.0.1:27017/device_checkin_test"; npm test` (`vitest run`); requires `TEST_MONGO_URI` (+ `JWT_SECRET` fallback set in-test).
+- Framework: Vitest 5 + Supertest, in `server/tests/*.test.js` (auth/device/qr). Run: `cd server && $env:TEST_MONGO_URI="mongodb://127.0.0.1:27017/device_checkin_test"; npm test` (`vitest run`); requires `TEST_MONGO_URI` (+ `JWT_SECRET` fallback set in-test). File-level parallelism is disabled via `server/vitest.config.js` (`fileParallelism: false`) to prevent CI races.
 - Coverage: register (valid/dupe/missing fields/role/hash secrecy), login (valid/invalid/unknown), `/me` (valid token/missing token), forgot-password (generic response, email normalization, no enumeration, token hashed in DB, non-string email → 400, dev link suppressed when `NODE_ENV≠'development'/'test'`), reset-password (full reset, new login works, old password rejected, token reuse rejected, expired token, invalid token, missing/non-string fields, 6-char minimum, 6-char boundary accepted, concurrent single-use) — 33 tests; plus device routes (register/role checks/duplicate serial/ownership/pagination/update/delete) and QR (generate, scan happy path, garbage/expired/missing token/location, no-device 404) — 20 tests. 53 total.
 - Not covered: rate limiting (limiter disabled in test env by design), frontend (no framework).
-- Keep new suites on their own derived DB (see Database section) so parallel workers can't race a shared `dropDatabase()`.
+- Keep new suites on their own derived DB (see Database section) so a shared `dropDatabase()` can't affect other suites.
 - CI: `.github/workflows/test.yml` — PRs to `main` run `npm ci` + `npm test` in `server/` with secrets `TEST_MONGO_URI` and `JWT_SECRET`.
 
 ## CI/CD
@@ -156,8 +156,9 @@ templates exist at `server/.env.example` and `client/.env.example` (git-tracked 
 | 36 | Password reset (dev-only link, email pending) | Complete | `docs/agent-task-history/36-password-reset.md` |
 | 41 | Error hygiene, `.env.example`, repo cleanup | Complete | `docs/agent-task-history/41-error-hygiene-env-cleanup.md` |
 | 42 | Device + QR test suites, CI isolation fix, JWT-secret leak + stray root lockfile removed | Complete | `docs/agent-task-history/42-device-qr-tests-ci-fix.md` |
+| 43 | CI-flaky server tests: run Vitest files sequentially via `server/vitest.config.js` | Complete | `docs/agent-task-history/43-vitest-sequential-cd-fix.md` |
 
 ## Context maintenance notes
 
-- Last meaningful update: Task 42 agent (branch `feature/device-qr-tests`, commit `38935c6`).
+- Last meaningful update: Task 43 agent (branch `feature/device-qr-tests`).
 - Future tasks: always branch from `origin/main` (local `main` ref is stale), check `server/app.js` for the mounted route/limiter layout, and remember tests need `TEST_MONGO_URI` pointing at the local running MongoDB service DB (`device_checkin_test`).
