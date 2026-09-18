@@ -114,12 +114,11 @@ templates exist at `server/.env.example` and `client/.env.example` (git-tracked 
 ## Testing
 
 - Framework: Vitest 5 + Supertest, in `server/tests/*.test.js` (auth/device/qr). Run: `cd server && $env:TEST_MONGO_URI="mongodb://127.0.0.1:27017/device_checkin_test"; npm test` (`vitest run`); requires `TEST_MONGO_URI` (+ `JWT_SECRET` fallback set in-test). File-level parallelism is disabled via `server/vitest.config.js` (`fileParallelism: false`) to prevent CI races.
-- Coverage: register (valid/dupe/missing fields/role/hash secrecy), login (valid/invalid/unknown), `/me` (valid token/missing token), forgot-password (generic response, email normalization, no enumeration, token hashed in DB, non-string email → 400, dev link suppressed when `NODE_ENV≠'development'/'test'`), reset-password (full reset, new login works, old password rejected, token reuse rejected, expired token, invalid token, missing/non-string fields, 6-char minimum, 6-char boundary accepted, concurrent single-use) — 33 tests; plus device routes (register/role checks/duplicate serial/ownership/pagination/update/delete) and QR (generate, scan happy path, garbage/expired/missing token/location, no-device 404) — 20 tests. 53 total.
-- Not covered: rate limiting (limiter disabled in test env by design), frontend (no framework).
+- Coverage: register (valid/dupe/missing fields/role/hash secrecy), login (valid/invalid/unknown), `/me` (valid token/missing token), forgot-password (generic response, email normalization, no enumeration, token hashed in DB, non-string email → 400, dev link suppressed when `NODE_ENV≠'development'/'test'`), reset-password (full reset, new login works, old password rejected, token reuse rejected, expired token, invalid token, missing/non-string fields, 6-char minimum, 6-char boundary accepted, concurrent single-use) — 33 tests; plus device routes (register/role checks/duplicate serial/ownership/pagination/update/delete) and QR (generate, scan all devices, selective device scan, invalid `serialNumbers` input, garbage/expired/missing token/location, no-device 404) — 22 tests. 55 total.
+- Not covered: rate limiting (limiter disabled in test env by design), frontend (no framework), and server-side search/export across all records.
+- QR selective scanning: `POST /api/qr/scan` accepts an optional `serialNumbers` array. When omitted, the existing behavior is preserved and all devices belonging to the student are checked in/out. When supplied with serial numbers, only matching devices owned by that student are affected.
 - Keep new suites on their own derived DB (see Database section) so a shared `dropDatabase()` can't affect other suites.
-- CI: `.github/workflows/test.yml` — PRs to `main` run `npm ci` + `npm test` in `server/` with secrets `TEST_MONGO_URI` and `JWT_SECRET`.
-
-## CI/CD
+- CI: `.github/workflows/test.yml` — PRs to `main` run `npm ci` + `npm test` in `server/` with secrets `TEST_MONGO_URI` and `JWT_SECRET`.## CI/CD
 
 - Only CI exists: GitHub Actions test workflow on PR to `main`. Render/Vercel configs exist but deployment is not live.
 
@@ -140,10 +139,10 @@ templates exist at `server/.env.example` and `client/.env.example` (git-tracked 
 - No minimum password strength at register (presence-only; reset-password has a 6-char floor).
 - Raw JWT session can't be revoked server-side (no denylist). 2h expiry bounds the risk.
 - `login` fails for mixed-case email input (only affects login, not register/reset).
+- QR selective scanning currently supports selecting devices by serial number; the frontend device-selection UI is not yet implemented.
 - Root repo has an untracked `.claude/` dir (no root `package.json`/lockfile — the accidental ones were removed). `.gitignore` ignores all
   `.env*` except `.env.example` (negated so the template files stay trackable). `docs/` is
   NOT ignored (tracked task files) — the older note claiming it was ignored was stale.
-
 ## Completed task index
 
 | Task | Description | Status | History |
